@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wildpath · 越野路线规划器</title>
+<link rel="stylesheet" href="./src/style.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "/node_modules/three/build/three.module.js",
+    "three/addons/": "/node_modules/three/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="view"></canvas>
+
+  <header class="hud top">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <h1>Wildpath 越野路线规划</h1>
+        <p>细格采样 · 坡度积分 · 装备通行成本</p>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </header>
+
+  <aside class="hud panel left">
+    <section class="block">
+      <h2>装备</h2>
+      <div id="equipment" class="equip-list"></div>
+      <p id="equip-desc" class="muted small"></p>
+    </section>
+
+    <section class="block">
+      <h2>路线代价</h2>
+      <div class="stat-grid">
+        <div><span class="k">总代价</span><b id="stat-total">–</b></div>
+        <div><span class="k">长度</span><b id="stat-len">–</b></div>
+        <div><span class="k">上坡附加</span><b id="stat-up">–</b></div>
+        <div><span class="k">下坡附加</span><b id="stat-down">–</b></div>
+        <div><span class="k">最高坡度</span><b id="stat-grade">–</b></div>
+        <div><span class="k">搜索展开</span><b id="stat-expanded">–</b></div>
+      </div>
+      <div class="mix" id="surface-mix"></div>
+    </section>
+
+    <section class="block">
+      <h2>沿路线查看</h2>
+      <canvas id="profile"></canvas>
+      <div class="scrub">
+        <input id="scrub" type="range" min="0" max="1000" value="0" step="1" />
+        <div id="scrub-label" class="muted small">起点</div>
+      </div>
+      <div id="segment" class="segment"></div>
+    </section>
+
+    <section class="block">
+      <details id="verify-box">
+        <summary><h2>代价构成校准</h2></summary>
+        <div class="verify" id="verify"></div>
+      </details>
+    </section>
+
+    <section class="block">
+      <details>
+        <summary><h2>重新设置起终点</h2></summary>
+        <div class="btnrow" style="margin-top:8px">
+          <button id="pick-start" class="toggle">设置起点</button>
+          <button id="pick-goal" class="toggle">设置终点</button>
+        </div>
+        <p class="muted small" id="pick-hint">点击地形放置标记；每次放置都会重新采样与求解。</p>
+      </details>
+    </section>
+
+  </aside>
+
+  <div class="hud dock">
+    <div class="btnrow">
+      <button id="drive" class="primary">出发行进</button>
+      <button id="reset">回到起点</button>
+    </div>
+    <p class="muted small" id="status"></p>
+  </div>
+
+  <div class="hud hint">拖动旋转 · 滚轮缩放 · 右键平移</div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
