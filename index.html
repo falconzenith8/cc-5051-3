@@ -37,32 +37,72 @@
     </section>
 
     <section class="block">
-      <h2>路线代价</h2>
-      <div class="stat-grid">
-        <div><span class="k">总代价</span><b id="stat-total">–</b></div>
-        <div><span class="k">长度</span><b id="stat-len">–</b></div>
-        <div><span class="k">上坡附加</span><b id="stat-up">–</b></div>
-        <div><span class="k">下坡附加</span><b id="stat-down">–</b></div>
-        <div><span class="k">最高坡度</span><b id="stat-grade">–</b></div>
-        <div><span class="k">搜索展开</span><b id="stat-expanded">–</b></div>
+      <h2>耐久度求解</h2>
+      <div class="btnrow" id="solver-switch">
+        <button class="toggle active" data-solver="both">两者对比</button>
+        <button class="toggle" data-solver="exact">状态精确搜索</button>
+        <button class="toggle" data-solver="hierarchical">分层预估</button>
       </div>
-      <div class="mix" id="surface-mix"></div>
+      <div class="dura-bar" title="出发装备耐久">
+        <label>当前耐久</label>
+        <div class="track"><div class="fill" id="dura-fill"></div></div>
+        <code id="dura-value">100</code>
+      </div>
+      <div class="stat-grid">
+        <div><span class="k">选中路线代价</span><b id="dstat-cost">–</b></div>
+        <div><span class="k">到达耐久</span><b id="dstat-dur">–</b></div>
+        <div><span class="k">展开状态数</span><b id="dstat-expanded">–</b></div>
+        <div><span class="k">峰值标签/节点</span><b id="dstat-peak">–</b></div>
+        <div><span class="k">补给使用</span><b id="dstat-supplies">–</b></div>
+        <div><span class="k">分层回退</span><b id="dstat-fallback">–</b></div>
+      </div>
     </section>
 
     <section class="block">
-      <h2>沿路线查看</h2>
-      <canvas id="profile"></canvas>
-      <div class="scrub">
-        <input id="scrub" type="range" min="0" max="1000" value="0" step="1" />
-        <div id="scrub-label" class="muted small">起点</div>
+      <h2>两求解器对比</h2>
+      <div id="solver-compare" class="compare"></div>
+      <div class="btnrow" style="margin-top:6px">
+        <button class="toggle" id="route-exact">按精确路线走</button>
+        <button class="toggle" id="route-hier">按分层路线走</button>
       </div>
-      <div id="segment" class="segment"></div>
+    </section>
+
+    <section class="block">
+      <h2>补给点（可拖到地形）</h2>
+      <div id="supply-tray" class="supply-tray"></div>
+      <p class="muted small">把补给箱拖到地形任意可通行格；松开即重新求解。拖回此处移除。</p>
+    </section>
+
+    <section class="block">
+      <h2>行走记录</h2>
+      <div id="walk-log" class="walk-log muted small">尚未出发。</div>
+      <p class="muted small" id="cache-key" style="word-break:break-all;margin-top:6px"></p>
+    </section>
+
+    <section class="block">
+      <h2>无耐久 A* 粗层对照</h2>
+      <div class="stat-grid" style="margin-top:6px">
+        <div><span class="k">无耐久总代价</span><b id="stat-total">–</b></div>
+        <div><span class="k">长度 (m)</span><b id="stat-len">–</b></div>
+        <div><span class="k">上坡附加</span><b id="stat-up">–</b></div>
+        <div><span class="k">下坡附加</span><b id="stat-down">–</b></div>
+        <div><span class="k">最高坡度</span><b id="stat-grade">–</b></div>
+        <div><span class="k">A* 展开</span><b id="stat-expanded">–</b></div>
+      </div>
+      <div class="mix" id="surface-mix"></div>
     </section>
 
     <section class="block">
       <details id="verify-box">
         <summary><h2>代价构成校准</h2></summary>
         <div class="verify" id="verify"></div>
+      </details>
+    </section>
+
+    <section class="block">
+      <details id="debug-box">
+        <summary><h2>耐久调试器 · 小地图反例</h2></summary>
+        <div id="debug-panel" class="debug-panel"><p class="muted small">加载中…</p></div>
       </details>
     </section>
 
@@ -82,13 +122,12 @@
   <div class="hud dock">
     <div class="btnrow">
       <button id="drive" class="primary">出发行进</button>
-      <button id="reset">回到起点</button>
     </div>
     <p class="muted small" id="status"></p>
   </div>
 
   <div class="hud hint">拖动旋转 · 滚轮缩放 · 右键平移</div>
 </div>
-<script type="module" src="./src/main.js"></script>
+<script type="module" src="./src/main-durability.js"></script>
 </body>
 </html>

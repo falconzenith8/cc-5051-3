@@ -73,3 +73,32 @@ export const EQUIPMENT = {
 };
 
 export const DEFAULT_EQUIPMENT = 'boots';
+
+// ---------------------------------------------------------------- durability
+// Gear durability is a second resource tracked alongside accumulated cost.
+// Every metre on a surface wears the gear by `wear[surface]`; mud is cheap per
+// metre but strips durability, so the bill for a cheap mud front half arrives
+// later as a fatigue surcharge (and possible hard block) on the scree slopes.
+export const DURABILITY = {
+  max: 100,
+  start: 100,
+  // durability points lost per metre travelled on each surface
+  wear: { grass: 0.12, gravel: 0.35, mud: 3.4, costly: 1.6 },
+  // Entering an edge that crosses gravel/costly scree requires at least this
+  // much durability in hand; below it the slope is impassable for this gear.
+  gateThreshold: 25,
+  // Surface classes that count as "scree" for the durability gate.
+  gatedClasses: [1, 3],
+  // Charged cost is the integrated edge cost times 1 + fatigue * (1 - d/max):
+  // the same physical edge gets more expensive as the gear wears down.
+  fatigue: 0.9,
+  supplyRestore: 100,
+  supplyRadius: 2.2,
+};
+
+// Supply caches on the main terrain. Snapped to the 2 m search lattice like the
+// start/goal markers. Dragging one changes the search input, not the terrain.
+export const DEFAULT_SUPPLIES = [
+  { id: 'supply-1', x: 66, z: 128 },
+  { id: 'supply-2', x: 172, z: 126 },
+];

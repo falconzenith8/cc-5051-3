@@ -75,8 +75,9 @@ export function createScene(canvas, surfaceAt) {
   addRocks(scene);
   addCostlyPebbles(scene);
   const markers = addMarkers(scene);
+  const supplyMarkers = addSupplyMarkers(scene);
 
-  return { renderer, scene, camera, controls, terrain, markers };
+  return { renderer, scene, camera, controls, terrain, markers, supplyMarkers };
 }
 
 function buildTerrain(surfaceAt, step) {
@@ -263,7 +264,48 @@ function addMarkers(scene) {
   return markers;
 }
 
-export { addMarkers };
+// Draggable supply caches. A crate on a pole with a ring; the app owns the
+// pointer drag logic and calls place() as the cache moves. The marker itself is
+// purely visual, like the start/goal markers.
+function addSupplyMarkers(scene) {
+  const set = {};
+  const make = (supply) => {
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.4, 2.1, 36),
+      new THREE.MeshBasicMaterial({ color: 0x58c6ff, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 0.1, 4.2, 8),
+      new THREE.MeshStandardMaterial({ color: 0x58c6ff, emissive: 0x1c6fa8, emissiveIntensity: 0.6, roughness: 0.5 }),
+    );
+    pole.position.y = 2.1;
+    const crate = new THREE.Mesh(
+      new THREE.BoxGeometry(1.1, 1.1, 1.1),
+      new THREE.MeshStandardMaterial({ color: 0x2f7fb8, emissive: 0x12496e, emissiveIntensity: 0.5, roughness: 0.6 }),
+    );
+    crate.position.y = 4.5;
+    crate.castShadow = true;
+    g.add(ring, pole, crate);
+    g.userData.supplyId = supply.id;
+    const place = (q) => {
+      const y = heightAt(q.x, q.z);
+      g.position.set(q.x, y, q.z);
+      ring.position.y = 0.12;
+    };
+    place(supply);
+    scene.add(g);
+    set[supply.id] = { group: g, place, crate };
+  };
+  return {
+    add(supply) { make(supply); return set[supply.id]; },
+    get(id) { return set[id]; },
+    all() { return set; },
+  };
+}
+
+export { addMarkers, addSupplyMarkers };
 
 // --------------------------------------------------------------- route curve
 // A piecewise-linear curve through the exact planner nodes. The walker and the
@@ -373,6 +415,89 @@ export function buildRouteLine(result) {
   group.userData.curve = curve;
   group.userData.edgeDensity = edgeDensity;
   return group;
+}
+
+// Durability route: same polyline the solver priced, coloured by remaining
+// durability at each edge's entry. Green = full gear, red = near the gate.
+// A dashed amber tube marks the durability-blind coarse line so the two layers
+// can be compared visually.
+const DUR_STOPS = [
+  [1.0, new THREE.Color(0x4bd38a)],
+  [0.6, new THREE.Color(0xd6d94f)],
+  [0.3, new THREE.Color(0xff9a3d)],
+  [0.0, new THREE.Color(0xff4d3d)],
+];
+
+function durabilityColor(frac) {
+  const f = Math.max(0, Math.min(1, frac));
+  for (let i = 0; i < DUR_STOPS.length - 1; i++) {
+    const [f0, c0] = DUR_STOPS[i];
+    const [f1, c1] = DUR_STOPS[i + 1];
+    if (f >= f1) return c0.clone().lerp(c1, (f0 - f) / (f0 - f1));
+  }
+  return DUR_STOPS[DUR_STOPS.length - 1][1].clone();
+}
+
+export function buildDurabilityRoute(run, maxDurability) {
+  const points = [];
+  const edgeEnd = [];
+  const edgeFrac = [];
+  let acc = 0;
+  for (const e of run.edges) {
+    if (!points.length) {
+      points.push(new THREE.Vector3(e.from.x, heightAt(e.from.x, e.from.z) + 0.7, e.from.z));
+    }
+    points.push(new THREE.Vector3(e.to.x, heightAt(e.to.x, e.to.z) + 0.7, e.to.z));
+    edgeFrac.push(e.durabilityIn / maxDurability);
+    acc += e.length;
+    edgeEnd.push(acc);
+  }
+  if (points.length < 2) return null;
+
+  const curve = new PolylineCurve(points);
+  const group = new THREE.Group();
+  const segs = Math.max(24, run.edges.length * 3);
+  const tubeGeo = new THREE.TubeGeometry(curve, segs, 0.38, 8, false);
+  const uv = tubeGeo.attributes.uv;
+  const colors = new Float32Array(uv.count * 3);
+  for (let i = 0; i < uv.count; i++) {
+    const dist = uv.getX(i) * curve.total;
+    let k = 0;
+    while (k < edgeEnd.length - 1 && edgeEnd[k] < dist) k++;
+    const c = durabilityColor(edgeFrac[k]);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  tubeGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const tube = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    emissive: 0x3a2a10,
+    emissiveIntensity: 0.35,
+    roughness: 0.4,
+    metalness: 0.05,
+  }));
+  tube.castShadow = true;
+  group.add(tube);
+  group.userData.curve = curve;
+  return group;
+}
+
+export function buildCoarseLine(path) {
+  if (!path || path.length < 2) return null;
+  const pts = path.map((p) => new THREE.Vector3(p.x, heightAt(p.x, p.z) + 0.85, p.z));
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineDashedMaterial({
+    color: 0xffb454,
+    dashSize: 1.6,
+    gapSize: 1.0,
+    linewidth: 1,
+    transparent: true,
+    opacity: 0.9,
+  });
+  const line = new THREE.Line(geo, mat);
+  line.computeLineDistances();
+  return line;
 }
 
 export function createWalker(scene) {

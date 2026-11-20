@@ -68,7 +68,7 @@ export function buildModel({ width, depth, cell, spacing, surfaceAt, heightAt })
 // length. Cells touched only at a corner are reported with length 0; they still
 // take part in the impassability check, which closes the diagonal "slip through
 // a corner" loophole.
-function traverseCells(model, ax, az, bx, bz, visit) {
+export function traverseCells(model, ax, az, bx, bz, visit) {
   const { cell, nx, nz } = model;
   const dx = bx - ax;
   const dz = bz - az;
@@ -183,7 +183,7 @@ export function evaluateEdge(model, profile, ax, az, bx, bz) {
 }
 
 // ------------------------------------------------------------------ heap
-class MinHeap {
+export class MinHeap {
   constructor(cmp) { this.a = []; this.cmp = cmp; }
   get size() { return this.a.length; }
   push(v) {
@@ -223,8 +223,9 @@ const NEIGHBOURS = [
   [1, 0], [-1, 0], [0, 1], [0, -1],
   [1, 1], [1, -1], [-1, 1], [-1, -1],
 ];
+export { NEIGHBOURS };
 
-function snapNode(model, p) {
+export function snapNode(model, p) {
   const ix = Math.round((p.x - model.cell * 0.5) / model.spacing);
   const iz = Math.round((p.z - model.cell * 0.5) / model.spacing);
   return {
@@ -239,6 +240,7 @@ function snapNode(model, p) {
 // length is an arbitrary tie — an avoidable sampling artefact.
 const nodeX = (model, ix) => ix * model.spacing + model.cell * 0.5;
 const nodeZ = (model, iz) => iz * model.spacing + model.cell * 0.5;
+export { nodeX, nodeZ };
 
 export function solve(model, profile, start, goal, opts = {}) {
   return solveWith(model, profile, start, goal, opts, evaluateEdge);
